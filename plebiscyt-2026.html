@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plebiscyt Nauczycielski</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; min-height: 100vh; padding: 1.5rem 1rem; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 2rem; }
+  .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
+  .header p { font-size: 14px; color: #555; line-height: 1.5; }
+  .code-section { background: #fff; border-radius: 12px; border: 1px solid #e0e0e0; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .code-section label { font-size: 13px; color: #666; display: block; margin-bottom: 6px; font-weight: 500; }
+  .code-section input { width: 100%; padding: 10px 14px; border: 1px solid #d0d0d0; border-radius: 8px; font-size: 16px; font-family: inherit; background: #fafafa; color: #1a1a1a; }
+  .code-section input:focus { outline: none; border-color: #888; background: #fff; }
+  .category { background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .category-title { font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 3px; }
+  .category-desc { font-size: 12px; color: #777; margin-bottom: 14px; }
+  .slots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+  .slot-label { font-size: 11px; color: #888; display: block; margin-bottom: 4px; }
+  .slot-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-bottom: 5px; }
+  .badge-3 { background: #d4edda; color: #2d6a3f; }
+  .badge-2 { background: #cce5ff; color: #1a5276; }
+  .badge-1 { background: #e2e3e5; color: #4a4a4a; }
+  .slot select { width: 100%; padding: 7px 8px; border: 1px solid #d0d0d0; border-radius: 8px; font-size: 12px; font-family: inherit; background: #fafafa; color: #1a1a1a; }
+  .slot select:focus { outline: none; border-color: #888; }
+  .prog { font-size: 11px; color: #999; text-align: right; }
+  .prog.error { color: #c0392b; }
+  .error-box { background: #fdecea; color: #c0392b; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; display: none; border: 1px solid #f5c6cb; }
+  .submit-btn { width: 100%; padding: 14px; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-family: inherit; font-weight: 500; cursor: pointer; margin-top: 1rem; transition: opacity 0.2s; }
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .success { text-align: center; padding: 4rem 1rem; display: none; }
+  .success .icon { font-size: 56px; margin-bottom: 1rem; }
+  .success h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .success p { font-size: 14px; color: #666; }
+  @media (max-width: 480px) { .slots { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="form-view">
+  <div class="header">
+    <h1>🏆 Plebiscyt Nauczycielski</h1>
+    <p>W każdej kategorii wybierz 3 nauczycieli.<br>1. miejsce = 3 pkt &nbsp;·&nbsp; 2. miejsce = 2 pkt &nbsp;·&nbsp; 3. miejsce = 1 pkt</p>
+  </div>
+
+  <div class="code-section">
+    <label>Twój kod ucznia</label>
+    <input type="text" id="student-code" placeholder="np. D18" maxlength="10" autocomplete="off">
+  </div>
+
+  <div id="error-box" class="error-box"></div>
+  <div id="categories"></div>
+  <button class="submit-btn" id="submit-btn" onclick="submitVotes()">Oddaj głosy</button>
+</div>
+
+<div id="success-view" class="success">
+  <div class="icon">🎉</div>
+  <h2>Głos oddany!</h2>
+  <p>Dziękujemy za udział w plebiscycie.</p>
+</div>
+
+</div>
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw5DbkgvM6jokD21JHHYopHHXKmNPX9TxFOLhtNsT6P2FmLiM_C3Z3V5No74FXA22U7cg/exec";
+const teachers = ["Bąbol-Płóciennik","Błażejewska","Chojnacka","Długosz","Domagała","Dyrcz","Gołąbek","Grzesiak","Gumienna","Górska","Juźwiak","Karwat","Kosiata","Krawczyk","Kujawa","Kukła","Kulczykowska","Łakomska","Łuczyk","Łysiak","Masny","Murzyn","Olejnik","Polakowska","Poznalska","Rusin","Rzepka","Sadecka","Samborowicz","Serdeń","Sienkiewicz","Skucha","Sobolewska","Solarek","Sołtysik","Swędrak","Tondel","Walczak","Wieczorek Anna","Wieczorek Robert","Woszczyński","Zagórniak","Zelmańska"];
+const categories = [
+  { id: "cierpliwosc", title: "Anielska Cierpliwość", desc: "Nauczyciel, który zawsze spokojnie tłumaczył nawet po raz dziesiąty" },
+  { id: "lekcje", title: "Najciekawsze Lekcje", desc: "Nauczyciel, którego lekcje mijały najszybciej" },
+  { id: "humor", title: "Największe Poczucie Humoru", desc: "Nauczyciel, który potrafił rozbawić całą klasę" },
+  { id: "serce", title: "Złote Serce", desc: "Nauczyciel najbardziej życzliwy i pomocny" },
+  { id: "historie", title: "Mistrzowskie Opowiadanie Historii", desc: "Nauczyciel, którego opowieści wszyscy pamiętają" },
+  { id: "kreatywnosc", title: "Najbardziej Kreatywne Pomysły", desc: "Nauczyciel organizujący nietypowe projekty i zadania" },
+  { id: "powiedzonko", title: "Najbardziej Kultowe Powiedzonko", desc: "Nauczyciel znany z charakterystycznego tekstu" },
+  { id: "organizacja", title: "Mistrz Organizacji", desc: "Nauczyciel, który zawsze miał wszystko zaplanowane" },
+  { id: "inspiracja", title: "Inspirowanie Uczniów", desc: "Nauczyciel, który rozbudził pasję do swojego przedmiotu" },
+  { id: "wyrozumialosc", title: "Największa Wyrozumiałość Przed Sprawdzianem", desc: "Nauczyciel, który czasem dawał drugą szansę" }
+];
+const slots = [
+  { label: "1. miejsce", badge: "3 pkt", cls: "badge-3", key: "first" },
+  { label: "2. miejsce", badge: "2 pkt", cls: "badge-2", key: "second" },
+  { label: "3. miejsce", badge: "1 pkt", cls: "badge-1", key: "third" }
+];
+function renderCategories() {
+  const container = document.getElementById('categories');
+  let html = '';
+  categories.forEach(cat => {
+    html += `<div class="category">
+      <div class="category-title">${cat.title}</div>
+      <div class="category-desc">${cat.desc}</div>
+      <div class="slots">`;
+    slots.forEach(slot => {
+      html += `<div>
+        <span class="slot-badge ${slot.cls}">${slot.badge}</span>
+        <span class="slot-label">${slot.label}</span>
+        <select id="${cat.id}_${slot.key}" onchange="validateSlots('${cat.id}')">
+          <option value="">— wybierz —</option>
+          ${teachers.map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+      </div>`;
+    });
+    html += `</div><div class="prog" id="prog_${cat.id}">0 / 3 wybranych</div></div>`;
+  });
+  container.innerHTML = html;
+}
+function validateSlots(catId) {
+  const vals = slots.map(s => document.getElementById(`${catId}_${s.key}`).value).filter(v => v);
+  const unique = new Set(vals);
+  const prog = document.getElementById(`prog_${catId}`);
+  if (vals.length > 0 && vals.length !== unique.size) {
+    prog.className = 'prog error';
+    prog.textContent = 'Wybierz różnych nauczycieli!';
+  } else {
+    prog.className = 'prog';
+    prog.textContent = `${vals.length} / 3 wybranych`;
+  }
+}
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function hideError() { document.getElementById('error-box').style.display = 'none'; }
+async function submitVotes() {
+  hideError();
+  const code = document.getElementById('student-code').value.trim().toUpperCase();
+  if (!code) { showError('Wpisz swój kod ucznia.'); return; }
+  const votes = [];
+  for (const cat of categories) {
+    const vals = slots.map(s => document.getElementById(`${cat.id}_${s.key}`).value);
+    for (const v of vals) {
+      if (!v) { showError(`Uzupełnij wszystkie miejsca w kategorii: „${cat.title}"`); return; }
+    }
+    if (new Set(vals).size !== 3) {
+      showError(`W kategorii „${cat.title}" wybierz trzech różnych nauczycieli.`);
+      return;
+    }
+    votes.push({ category: cat.title, first: vals[0], second: vals[1], third: vals[2] });
+  }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Wysyłanie...';
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, votes })
+    });
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('success-view').style.display = 'block';
+  } catch (e) {
+    showError('Błąd połączenia. Sprawdź internet i spróbuj ponownie.');
+    btn.disabled = false;
+    btn.textContent = 'Oddaj głosy';
+  }
+}
+renderCategories();
+</script>
+</body>
+</html>
